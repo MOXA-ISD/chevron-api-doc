@@ -1,0 +1,144 @@
+openapi: 3.0.0
+
+info:
+  title: logging service
+  description: Thanos logging service
+  version: '0.11.0'
+
+servers:
+  - url: http://127.0.0.1:59000/api
+
+tags:
+  - name: "log"
+
+components:
+  schemas:
+    LogContents:
+      type: array
+      items:
+        $ref: '#/components/schemas/LogContent'
+
+    NewLogContent:
+      properties:
+        origin:
+          type: string
+          description: service name
+        labels:
+          type: array
+          items:
+            type: string
+          description: user define label
+        level:
+          type: string
+          description: log severity level, level default is info.
+          enum: &level
+          - emerg
+          - alert
+          - crit
+          - error
+          - warning
+          - notice
+          - info
+          - debug
+        message:
+          type: string
+          description: log message
+      required:
+        - origin
+        - label
+        - message
+
+    LogContent:
+      properties:
+        id:
+          type: integer
+        created:
+          type: string
+          description: log created time
+        origin:
+          type: string
+          description: service name
+        labels:
+          type: array
+          items:
+            type: string
+          description: user define label
+        level:
+          type: string
+          description: log severity level, level default is info.
+          enum: *level
+        message:
+          type: string
+          description: log message
+
+paths:
+  /logs:
+    post:
+      summary: create log
+      description: log can be created by redis publish event of topic `event:log`
+      tags: ["log"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewLogContent'
+            example:
+              {
+                "origin": "test-app",
+                "labels": [
+                  "label1",
+                  "label2"
+                ],
+                "level": "err",
+                "message": "I'm not good"
+              }
+      responses:
+        200:
+          description: success
+
+    get: &logget
+      summary: get logs for the specified criteria
+      description: return SSE with topic log if endpoint has suffix `event`
+      tags: ["log"]
+      parameters:
+      - in: query
+        name: limit
+        description: Get the specified number of logs.
+        schema:
+          type: integer
+      - in: query
+        name: started
+        description: Get the logs from the ID.
+        schema:
+          type: integer
+      - in: query
+        name: labels
+        description: Get the specified labels of logs.
+        schema:
+          type: array
+          items:
+            type: string
+      - in: query
+        name: origins
+        description: Get the specified service of logs.
+        schema:
+          type: array
+          items:
+            type: string
+      - in: query
+        name: levels
+        description: Get the specified levels of logs.
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogContents'
+  /logs/event:
+    get: *logget

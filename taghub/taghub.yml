@@ -1,0 +1,658 @@
+openapi: '3.0.0'
+
+tags:
+  - name: tag
+  - name: access
+  - name: monitor
+  - name: taghub
+  - name: fieldbus template
+  - name: fieldbus device
+  - name: fieldbus control
+
+info:
+  description: TagService and TagHub API
+  version: "0.11.0"
+  title: Tag APIs
+
+servers:
+  - url: https://127.0.0.1/api/v1/
+
+paths:
+  '/tags/all':
+    get:
+      tags:
+        - tag
+      security:
+        - mx-api-token: []
+      description:
+        Gets all kinds of tags.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagList'
+  '/tags/virtual':
+    get:
+      tags:
+        - tag
+      security:
+        - mx-api-token: []
+      description:
+        Gets all virtual tags.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagList'
+    post:
+      tags:
+        - tag
+      description:
+        Set virtual tags.
+      responses:
+        '200':
+          description: Successful response
+          content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/TagList'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagList'
+    put:
+      tags:
+        - tag
+      description:
+        Edit virtual tags.
+      responses:
+        '200':
+          description: Successful response
+          content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/TagList'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagList'
+  '/tags/system':
+    get:
+      tags:
+        - tag
+      security:
+        - mx-api-token: []
+      description:
+        Gets system taglist.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagList'
+  '/tags/fieldbus':
+    get:
+      tags:
+        - tag
+      security:
+        - mx-api-token: []
+      description:
+        Gets all tags with given type.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagList'
+  '/tags/access/{source}/{tag}':
+    parameters:
+      - name: source
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: tag
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - access
+      description:
+        Access method for fieldbus read and only 'ro', 'rw' access type can work.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessResponse'
+        '400':
+          description: Failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessErrorResponse'
+    put:
+      tags:
+        - access
+      description:
+        Access method for fieldbus write and only 'wo', 'rw' access type can work.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagAccess'
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessErrorResponse'
+  '/tags/fieldbus/{type}/templates':
+    parameters:
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - fieldbus template
+      description:
+        Gets template list by given fieldbus protocol
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateList'
+        '409':
+          description: Templates have dependencies.
+  '/tags/fieldbus/{type}/templates/{name}':
+    parameters:
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - fieldbus template
+      description:
+        Gets `fieldbus tag settings` by the given protocol and template name.
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+    post:
+      tags:
+        - fieldbus template
+      description:
+        Adds a new `IO template` by the given protocol and template name.
+      responses:
+        '200':
+          description: Successful response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Template'
+    put:
+      tags:
+        - fieldbus template
+      description:
+        Updates an `IO template` by the given protocol and template name.
+      responses:
+        '200':
+          description: Successful response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Template'
+    delete:
+      tags:
+        - fieldbus template
+      description:
+        Removes an `IO template` by the given protocol and template name.
+      responses:
+        '200':
+          description: Successful removing the template.
+  '/tags/fieldbus/{type}/devices':
+    parameters:
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: template
+        in: query
+        schema:
+          type: string
+    get:
+      tags:
+        - fieldbus device
+      description:
+        Gets all devices that refer to the given template, otherwise remove all devices of the type
+      responses:
+        '200':
+          description: Succeed to get device list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Devices'
+    delete:
+      tags:
+        - fieldbus device
+      parameters:
+      - name: ids
+        in: query
+        description: Device IDs
+        schema:
+          type: string
+          example: "366020ac-46da-11e8-947d-0090e84b0301,366020ac-46da-11e8-947d-0090e84b0302"
+      description:
+        Removes all devices that refer to the given template
+      responses:
+        '200':
+          description: Succeed to remove devices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletedDevices'
+  '/tags/fieldbus/{type}/device':
+    parameters:
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      tags:
+        - fieldbus device
+      description:
+        Adds an device config by given protocol and device name.
+      responses:
+        '200':
+          description: Ok.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Device'
+    put:
+      tags:
+        - fieldbus device
+      description:
+        Updates an device config by given protocol and device name.
+      responses:
+        '200':
+          description: Ok.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Device'
+  '/tags/fieldbus/{type}/{control}':
+    parameters:
+      - name: type
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: control
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+            - start
+            - stop
+            - restart
+    post:
+      tags:
+        - fieldbus control
+      description: Start/Stop the particular protocol controller
+      responses:
+        '200':
+          description: Successfully send command to controller.
+  '/tags/monitor/enable':
+    post:
+      tags:
+        - monitor
+      description:
+        Enable particular tag to start publishing data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagMonitor'
+      responses:
+        '200':
+          description: response
+  '/tags/monitor/disable':
+    post:
+      tags:
+        - monitor
+      description:
+        Disable particular tag to start publishing data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagMonitor'
+      responses:
+        '200':
+          description: response
+  '/tags/monitor/{source}':
+    parameters:
+      - name: source
+        in: path
+        required: true
+        description: Source Name - (device name, system, virtual)
+        schema:
+          type: string
+      - name: tag
+        in: query
+        description: Tag Name - format (tag=name1&tag=name2&tag=name3)
+        schema:
+          type: string
+      - name: ms
+        in: query
+        description: A period range in milliseconds
+        schema:
+          type: integer
+    get:
+      tags:
+        - monitor
+      description:
+        Returns value of tags in taghub which queried by different sources and time
+      responses:
+        '200':
+          description: response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagStats'
+  '/taghub/enable':
+    post:
+      tags:
+        - taghub
+      description: 
+        Enable taghub daemon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expirationTime:
+                  type: integer
+                  description: the value has to be a second time between 60 ~ 86400
+                  example: 86400
+      responses:
+        '200':
+          description: Enabled taghub daemon
+        '400':
+          description: Incorrect schema of requestBody
+  '/taghub/disable':
+    post:
+      tags:
+        - taghub
+      description: 
+        Disable taghub daemon
+      responses:
+        '200':
+          description: Disabled taghub daemon
+        '400':
+          description: There is no running taghub daemon in the system
+
+components:
+  securitySchemes:
+    mx-api-token:
+      type: apiKey
+      name: mx-api-token
+      in: header
+  schemas:
+    TemplateList:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/Template'
+    Template:
+      type: object
+      properties:
+        templateName:
+          type: string
+        tagList:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldbusTag'
+      example:
+        templateName: iologik-e2242.met
+        protocolName: modbus
+        tagList:
+          - id: di0
+            op: read
+            type: uint16
+            requestTimeoutMs: 5000
+            pollingPeriodMs: 1000
+            address: 0
+            quantity: 1
+            function: read-coils
+          - id: di1
+            op: read
+            type: uint16
+            requestTimeoutMs: 5000
+            pollingPeriodMs: 1000
+            address: 1
+            quantity: 1
+            function: read-coils
+    Tag:
+      type: object
+      properties:
+        srcName:
+          type: string
+        tagName:
+          type: string
+        dataType:
+          type: string
+          enum:
+            - uint8
+            - uint16
+            - uint32
+            - uint64
+            - int16
+            - int32
+            - int64
+            - float32
+            - float64
+            - string
+            - boolean
+            - bytearray
+        duration:
+          type: integer
+          format: int32
+        dataUnit:
+          type: string
+        access:
+          type: string
+          enum:
+            - ro
+            - wo
+            - rw
+    TagList:
+      type: object
+      properties:
+        tagList:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+    TagStats:
+      type: array
+      items:
+        type: object
+        properties:
+          srcName:
+            type: string
+            example: ioLogik-E1214
+          tagName:
+            type: string
+            example: di0
+          ts:
+            type: integer
+            format: int64
+            example: 1541409957933
+          dataType:
+            type: string
+            example: double
+          dataValue:
+            type: object
+            example: 3.14
+          dataUnit:
+            type: string
+            example: 'mA'
+    TagMonitor:
+      type: object
+      properties:
+        id:
+          type: string
+          example: f1g1er6g1q6g86qer1g6fddgad
+        list:
+          type: array
+          items:
+            type: object
+            properties:
+              srcName:
+                type: string
+                example: ioLogik-E1214
+              tagName:
+                type: string
+                example: di0
+    TagAccess:
+      type: object
+      properties:
+        dataType:
+          type: string
+          example: "int16"
+        dataValue:
+          type: object
+          example: 1
+    AccessResponse:
+      type: object
+      properties:
+        srcName:
+          type: string
+          example: "ioLogik"
+        tagName:
+          type: string
+          example: "di0"
+        timestamp:
+          type: string
+          example: "1560322153374"
+        dataType:
+          type: string
+          example: "uint16"
+        dataValue:
+          type: object
+          example: 1
+    AccessErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    FieldbusTag:
+      type: object
+      properties:
+        op:
+          type: string
+        pollingPeriodMs:
+          type: integer
+        requestTimeoutMs:
+          type: integer
+        address:
+          type: integer
+        type:
+          type: string
+        id:
+          type: string
+        quantity:
+          type: integer
+    Device:
+      type: object
+      required:
+        - name
+        - interface
+        - templateName
+      properties:
+        name:
+          type: string
+        interface:
+          type: string
+        templateName:
+          type: string
+      example:
+        id: 366020ac-46da-11e8-947d-0090e84b0301
+        name: My_ioLogik-E2242
+        interface: eth
+        templateName: iologik-e2242.met
+        host: 192.168.0.1
+        deviceId: 0
+        service: 502
+    Devices:
+      type: object
+      required:
+        - deviceList
+      properties:
+        deviceList:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+    DeletedDevices:
+      type: object
+      required:
+        - deviceList
+      properties:
+        deviceList:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+      example:
+        deviceList:
+          - id: 366020ac-46da-11e8-947d-0090e84b0301 

@@ -1,0 +1,428 @@
+openapi: '3.0.0'
+
+info:
+  title: Thanos authentication
+
+servers:
+  - url: http://127.0.0.1:8082/api
+
+tags:
+  - name: "authentication"
+
+components:
+  schemas:
+    Users:
+      type: array
+      items:
+        $ref: '#/components/schemas/User'
+
+    User:
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        createdAt:
+          type: string
+        changedPasswordAt:
+          type: string
+
+    Role:
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
+
+    Permission:
+      properties:
+        id:
+          type: integer
+        value:
+          type: integer
+          description: Attribute of Permission, 0 is cannot view/edit, 1 is can view but cannot edit, 2 is can view and edit
+        name:
+          type: string
+          description: Name of permission.
+        description:
+          type: string
+          description: Description of permission.
+
+paths:
+  /auth:
+    post:
+      summary: sign in
+      tags: ["authentication"]
+      security: []
+      requestBody:
+        description: The uploaded file data.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+              required:
+                - email
+                - password
+            example:
+              {
+                "password": "MoxaPa$$word",
+                "name": "root"
+              }
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    properties:
+                      token:
+                        type: string
+                      user:
+                        $ref: '#/components/schemas/User'
+        401:
+          description: unauthorized
+
+    put:
+      summary: refresh authentication token
+      tags: ["authentication"]
+      responses:
+        200:
+          description: success
+        401:
+          description: unauthorized
+
+    get:
+      summary: check current token
+      tags: ["authentication"]
+      responses:
+        200:
+          description: success
+        401:
+          description: unauthorized
+
+  /users:
+    get:
+      summary: get user list
+      tags: ["users"]
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Users'
+                  count:
+                    type: integer
+        401:
+          description: unauthorized
+
+    post:
+      summary: create a new user
+      tags: ["users"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: integer
+                  description: 1 is admin role, 2 is user role by default
+              required:
+                - name
+                - password
+                - email
+                - role
+            example:
+              {
+                "name": "myuser",
+                "password": "123456",
+                "email": "myuser@moxa.com",
+                "roleid": 2
+              }
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/me:
+    get:
+      summary: who I am
+      tags: ["users"]
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/{id}:
+    get:
+      summary: get user info by ID
+      tags: ["users"]
+      parameters:
+        - name: id
+          in: path
+          description: ID of user
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        401:
+          description: unauthorized
+
+    put:
+      summary: update user info
+      tags: ["users"]
+      parameters:
+        - name: id
+          in: path
+          description: ID of user
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                roleID:
+                  type: integer
+                  description: 1 is admin role, 2 is user role by default
+              required:
+                - roleID
+            example:
+              {
+                "roleID": 1
+              }
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    delete:
+      summary: delete user by ID
+      tags: ["users"]
+      parameters:
+        - name: id
+          in: path
+          description: ID of user
+          required: true
+          schema:
+            type: integer
+      responses:
+        204:
+          description: success
+
+  /users/{id}/password:
+    put:
+      summary: update user's password
+      tags: ["users"]
+      parameters:
+        - name: id
+          in: path
+          description: ID of user
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                oldPassword:
+                  type: string
+                newPassword:
+                  type: string
+            example:
+              {
+                "oldPassword": "MoxaPa$$word",
+                "newPassword": "123456"
+              }
+
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example: {"data":{"id":1,"name":"root","email":"root@moxa.com","role":{"id":1,"name":"admin","permissions":[]},"loginAt":"2019-07-09T10:41:15.6415931Z","changedPasswordAt":"2019-07-09T10:41:15.6754759Z"}}
+        403:
+          description: old password is not correct
+        400:
+          description: password format is not allowed
+
+  /roles:
+    get:
+      summary: get roles
+      tags: ["users"]
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+
+  /permissions:
+    get:
+      summary: get permissions
+      tags: ["users"]
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Permission'
+
+  # /tokens:
+  #   get:
+  #     summary: Get token list
+  #     tags:
+  #       - Tokens
+  #     responses:
+  #       200:
+  #         description: success
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/Tokens'
+  #       401:
+  #         description: unauthorized
+  #   post:
+  #     summary: Create a new token
+  #     tags:
+  #     - Tokens
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: "#/components/schemas/TokenNew"
+  #     responses:
+  #       200:
+  #         description: success
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/Token'
+  #       401:
+  #         description: unauthorized
+
+  # /tokens/{id}:
+  #   get:
+  #     summary: Get token info by ID
+  #     tags:
+  #       - Tokens
+  #     parameters:
+  #       - name: "id"
+  #         in: "path"
+  #         description: ID of token
+  #         required: true
+  #         schema:
+  #           type: integer
+  #           format: int64
+  #     responses:
+  #       200:
+  #         description: success
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/Token'
+  #       401:
+  #         description: unauthorized
+  #   put:
+  #     summary: Update token's info
+  #     tags:
+  #       - Tokens
+  #     parameters:
+  #       - name: "id"
+  #         in: "path"
+  #         description: ID of token
+  #         required: true
+  #         schema:
+  #           type: integer
+  #           format: int64
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: "#/components/schemas/TokenNew"
+  #     responses:
+  #       200:
+  #         description: success
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/Token'
+  #       401:
+  #         description: unauthorized
+  #   delete:
+  #     summary: Delete a token by ID
+  #     tags:
+  #       - Tokens
+  #     parameters:
+  #       - name: "id"
+  #         in: "path"
+  #         description: ID of user
+  #         required: true
+  #         schema:
+  #           type: integer
+  #     responses:
+  #       200:
+  #         description: success
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/Token'
+  #       401:
+  #         description: unauthorized
+  #       404:
+  #         description: not found

@@ -1,0 +1,539 @@
+openapi: "3.0.0"
+
+info:
+  title: Thanos System
+  version: "0.11.0"
+
+servers:
+  - url: http://127.0.0.1:8082/api
+
+tags:
+  - name: "systems"
+
+components:
+  securitySchemes:
+    bearerAuth: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT # optional, arbitrary value for documentation purposes
+  schemas:
+    Error:
+      required:
+        - message
+        - code
+      properties:
+        error:
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+  responses:
+    Success:
+      description: success
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnexpectedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+security:
+  - bearerAuth: []
+
+paths:
+  /_/ping:
+    get:
+      description: ping pong test
+      security: []
+      tags: ["systems"]
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              example: { "data": "pong" }
+
+  /_/health:
+    get:
+      description: overall system health
+      tags: ["systems"]
+      responses:
+        200:
+          description: return one of "init", "starting", "ready", "stopping"
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: ready
+
+  /_/welcome:
+    get:
+      description: information for welcome page
+      security: []
+      tags: ["systems"]
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    properties:
+                      modelName:
+                        type: string
+              example: { "data": {"modelName": "UC-8112-LX"} }
+
+  /system:
+    get:
+      summary: get system configurations
+      tags: ["systems"]
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                properties:
+                  httpserverMode:
+                    description: http server operating mode
+                    type: string
+                    enum:
+                      - NONE
+                      - HTTP_ONLY
+                      - HTTPS_ONLY
+                      - BOTH
+                      - REDIRECT_TO_HTTPS
+                  httpserverHttpPort:
+                    description: listen port for http
+                    type: integer
+                  httpserverHttpsPort:
+                    description: listen port for https
+                    type: integer
+                  fail2banMaxRetry:
+                    type: integer
+                    description: Number of matches (i.e. value of the counter) which triggers ban action on the IP.
+                  fail2banFindTime:
+                    type: integer
+                    description: The counter is set to zero if no match is found within "findtime" seconds.
+                  fail2banBanTime:
+                    type: integer
+                    description: Duration (in seconds) for IP to be banned for. Negative number for "permanent" ban.
+                  deviceName:
+                    type: string
+                    description: device name showing dashboard
+                  deviceHostname:
+                    type: string
+                    description: device hostname
+                  deviceCPU:
+                    type: string
+                    description: CPU model. read-only value.
+                  deviceMemory:
+                    type: integer
+                    description: memory. read-only value.
+                  deviceRouting:
+                    type: string
+                    description: default route via interface
+                    enum:
+                      - ethernet
+                      - wifi
+                      - cellular
+                  deviceEdgeVersion:
+                    description: (RO) edge version
+                    type: string
+                  deviceFirmwareVersion:
+                    description: (RO) firmware version
+                    type: string
+                  deviceSkuId:
+                    description: (RO) SKU ID
+                    type: string
+                  deviceSkuCreatedAt:
+                    description: (RO) when to install SKU
+                    type: string
+                    format: date-time
+                  deviceUpDuration:
+                    description: (RO) uptime in seconds
+                    type: integer
+                  deviceNetworkMonitorEnabled:
+                    description: enable network monitoring
+                    type: boolean
+              example:
+                {
+                  "data":
+                    {
+                      "fail2ban":
+                        { "banTime": 3600, "findTime": 1200, "maxRetry": 6 },
+                      "log2syslog":
+                        {
+                          "enable": false,
+                          "host": "10.144.48.106:514",
+                          "protocol": "udp",
+                          "tag": "moxa",
+                        },
+                      "netstat": true,
+                      "ping": true,
+                      "reboot": true,
+                    }
+                }
+
+  /system/fail2ban:
+    get:
+      summary: get fail2ban configuration
+      tags: ["systems"]
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                properties:
+                  fail2banMaxRetry:
+                    type: integer
+                    description: Number of matches (i.e. value of the counter) which triggers ban action on the IP.
+                  fail2banFindTime:
+                    type: integer
+                    description: The counter is set to zero if no match is found within "findtime" seconds.
+                  fail2banBanTime:
+                    type: integer
+                    description: Duration (in seconds) for IP to be banned for. Negative number for "permanent" ban.
+              example:
+                {
+                  "data": { "banTime": 3600, "findTime": 1200, "maxRetry": 6 }
+                }
+
+  /system/httpserver:
+    get:
+      summary: get httpserver configuration
+      tags: ["systems"]
+      responses:
+        200:
+          description: success
+          content: &httpserverGetReturn
+            application/json:
+              schema:
+                properties: &httpserverProperties
+                  httpserverMode:
+                    description: http server operating mode
+                    type: string
+                    enum:
+                      - NONE
+                      - HTTP_ONLY
+                      - HTTPS_ONLY
+                      - BOTH
+                      - REDIRECT_TO_HTTPS
+                  httpserverHttpPort:
+                    description: listen port for http
+                    type: integer
+                  httpserverHttpsPort:
+                    description: listen port for https
+                    type: integer
+                  httpserverCert:
+                    description: HTTPS Certificate
+                    type: string
+                  httpserverKey:
+                    description: HTTPS Key
+                    type: string
+              example:
+                {
+                  "data": {
+                      "httpserverHttpPort": 80,
+                      "httpserverHttpsPort": 443,
+                      "httpserverMode": "REDIRECT_TO_HTTPS"
+                  }
+                }
+
+    put:
+      summary: set httpserver configuration
+      tags: ["systems"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties: *httpserverProperties
+            example:
+              {
+                "httpserverHttpPort": 80,
+                "httpserverHttpsPort": 443,
+                "httpserverMode": "BOTH"
+              }
+      responses:
+        200:
+          description: success
+          content: *httpserverGetReturn
+
+  /system/?netstat:
+    put: &netstat
+      summary: show `netstat` result
+      description: return SSE with topic stdout and stderr if endpoint has suffix `event`
+      tags: ["systems"]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tcp:
+                  type: boolean
+                udp:
+                  type: boolean
+                listen:
+                  type: boolean
+                numeric:
+                  type: boolean
+                deadlineSecond:
+                  type: integer
+            example:
+              {
+                "tcp": true,
+                "udp": true,
+                "listen": true,
+                "numeric": true,
+                "deadlineSecond": 20,
+              }
+      responses:
+        200:
+          description: success
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /system/netstat/event:
+    put: *netstat
+
+  /system/?ping:
+    put: &ping
+      summary: show `ping` result
+      description: return SSE with topic stdout and stderr if endpoint has suffix `event`
+      tags: ["systems"]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                count:
+                  type: integer
+                destination:
+                  type: string
+                intervalSecond:
+                  type: integer
+                deadlineSecond:
+                  type: integer
+            example:
+              {
+                "count": 3,
+                "destination": "8.8.8.8",
+                "intervalSecond": 1,
+                "deadlineSecond": 20,
+              }
+      responses:
+        200:
+          description: success
+          content:
+            text/plain:
+              schema:
+                type: string
+
+
+  /system/ping/event:
+    put: *ping
+
+  /system/?reboot:
+    put:
+      summary: reboot system
+      tags: ["systems"]
+      responses:
+        200:
+          description: success
+
+  /system/?reset-default:
+    put:
+      summary: reset system to default configuration
+      tags: ["systems"]
+      parameters:
+        - in: query
+          name: scopes
+          description: reset scope
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - all
+                - fail2ban
+                - log2syslog
+                - httpserver
+                - user
+      responses:
+        200:
+          description: success
+
+  /system/log2syslog:
+    get:
+      summary: get status of log to syslog service
+      tags: ["systems"]
+      responses:
+        200:
+          description: success
+          content: &log2syslogGetReturn
+            application/json:
+              schema:
+                properties:
+                  data:
+                    properties: &log2syslogProperties
+                      enable:
+                        type: boolean
+                      host:
+                        type: string
+                      protocol:
+                        type: string
+                        enum:
+                          - tcp
+                          - udp
+                      tag:
+                        type: string
+              example:
+                {
+                  "data":
+                    {
+                      "enable": false,
+                      "host": "10.144.48.106:514",
+                      "protocol": "udp",
+                      "tag": "moxa",
+                    },
+                }
+
+    put:
+      summary: set log to syslog service
+      tags: ["systems"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: *log2syslogProperties
+            example:
+              {
+                "enable": false,
+                "host": "10.144.48.106:514",
+                "protocol": "udp",
+                "tag": "moxa",
+              }
+      responses:
+        200:
+          description: success
+          content: *log2syslogGetReturn
+  /system/tags:
+    get:
+      summary: platform-independent system tags
+      tags: ["systems"]
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    type: array
+                    items:
+                      properties:
+                        srcName:
+                          type: string
+                        tagType:
+                          type: string
+                        duration:
+                          type: int
+                        description:
+                          type: string
+                        default:
+                          type: string
+                        dataUnit:
+                          type: string
+                        dataType:
+                          type: string
+                        tagName:
+                          type: string
+              example:
+                {
+                  "data": [
+                      {
+                          "access": "ro",
+                          "dataType": "int32",
+                          "dataUnit": "%",
+                          "default": "0",
+                          "description": "cpu usage",
+                          "duration": 1000,
+                          "srcName": "system",
+                          "tagName": "cpuUsage",
+                          "tagType": "system"
+                      },
+                      {
+                          "access": "ro",
+                          "dataType": "uint32",
+                          "dataUnit": "%",
+                          "default": "0",
+                          "description": "memory usage",
+                          "duration": 1000,
+                          "srcName": "system",
+                          "tagName": "memoryUsage",
+                          "tagType": "system"
+                      },
+                      {
+                          "access": "ro",
+                          "dataType": "uint32",
+                          "dataUnit": "%",
+                          "default": "0",
+                          "description": "disk usage",
+                          "duration": 1000,
+                          "srcName": "system",
+                          "tagName": "diskUsage",
+                          "tagType": "system"
+                      }
+                  ]
+              }
+  # /system/device:
+  #   get:
+  #     summary: get system configurations
+  #     tags: ["systems"]
+  #     responses:
+  #       200:
+  #         description: success
+  #         content:
+  #           application/json:
+  #             schema:
+  #               properties:
+  #                 test:
+  #                   type: string
+  #             example:
+  #               {
+  #                 "cpu": "Intel(R) Core(TM) i7-4770 CPU @ 3.40GHz",
+  #                 "disk": "{\"/\":\"1484458688/2867002712\"}",
+  #                 "edgeVersion": "0.0.0-0",
+  #                 "firmwareVersion": "0.0.0-0",
+  #                 "hostname": "Moxa",
+  #                 "memory": 28682088,
+  #                 "name": "",
+  #                 "networkMonitorEnabled": true,
+  #                 "routing": "ethernet",
+  #                 "skuCreatedAt": "",
+  #                 "skuID": "",
+  #                 "upDuration": 2158633,
+  #                 "deviceName": "",
+  #                 "deviceType": "",
+  #                 "lastBootTime": "2019-05-14T03:30:24Z",
+  #                 "lastRebootTime": "",
+  #                 "memorySize": 29370458112,
+  #                 "modelName": "",
+  #                 "rebootId": "",
+  #                 "type": ""
+  #               }

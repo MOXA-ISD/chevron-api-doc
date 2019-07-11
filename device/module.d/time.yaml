@@ -1,0 +1,101 @@
+openapi: '3.0.0'
+
+info:
+  version: '1.0'
+  title: 'Time Configuration APIs'
+  description: 'Time Configuration APIs'
+
+components:
+  schemas:
+    TimeInformation:
+      title: Device time configuration
+      properties:
+        time:
+          type: string
+          description: "Current system time (format: RFC3339)."
+          minLength: 20
+          maxLength: 35
+          example: 2015-03-26T16:27:48.611441Z
+        timezone:
+          type: string
+          description: device timezone.
+          minLength: 1
+          maxLength: 64
+          example: Asia/Taipei
+        ntp:
+          type: object
+          properties:
+            enable:
+              type: boolean
+              description: enable/disable ntpd service
+              example: false
+            server:
+              type: string
+              description: ntp server url
+              minLength: 1
+              maxLength: 255
+              example: pool.ntp.org
+            interval:
+              type: integer
+              description: ntpd update interval
+              minimum: 60
+              maximum: 2592000
+              example: 7200
+
+paths:
+  /device/time:
+    get:
+      description: Get device time configuration.
+      tags: ["device", "time"]
+      responses:
+        200:
+          description: Device time configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeInformation'
+              example:
+                data:
+                  time: 2015-03-26T16:27:48.611441Z
+                  timezone: Asia/Taipei
+                  ntp:
+                    enable: false
+                    server: pool.ntp.org
+                    interval: 7200
+    patch:
+      tags: ["device", "time"]
+      description: Update device time configuration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimeInformation'
+            examples:
+              update time:
+                value:
+                  time: 2015-03-26T16:27:48.611441Z
+              update timezone:
+                value:
+                  timezone: Asia/Taipei
+              update ntp service:
+                value:
+                  ntp:
+                    enable: true
+                    server: tock.stdtime.gov.tw
+                    interval: 6000
+      responses:
+        200:
+          description: Device time configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeInformation'
+              example:
+                data:
+                  time: 2015-03-26T16:27:48.611441Z
+                  timezone: Asia/Taipei
+                  ntp:
+                    enable: true
+                    server: tock.stdtime.gov.tw
+                    interval: 6000
